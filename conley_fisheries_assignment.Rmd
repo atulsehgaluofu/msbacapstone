@@ -28,7 +28,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 library(tidyverse) 
 
 # Define n
-n <- 500
+n <- 5000000
 
 # Empty data frame for 1000 simulated days
 data <- data.frame(day = seq(1:n),
