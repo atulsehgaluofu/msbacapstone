@@ -1,0 +1,206 @@
+---
+title: " "
+author: " "
+date: " "
+output: 
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+```
+
+<!-- Note:   -->
+
+<!-- These instructions are commented out and will not display when you knit your RMarkdown document. -->
+
+<!-- - Change the information in the yaml header above:  title, author, data. -->
+<!-- - Make sure output is html_document. -->
+<!-- - Once you are finished coding, **run each chunk individually to make sure there are no errors**.  (If necessary fix your code.) Once your code is error-free, click "knit" on the menu above. Your document should compile to HTML, provided that you have output set to "html_document." -->
+<!-- - In the code chunk above ("setup") echo is set to TRUE.  This means that the code in your chunks will be displayed, along with the results, in your compiled document. -->
+
+## Load packages and create empty data frame
+
+```{r}
+# Load packages
+library(tidyverse) 
+
+# Define n
+n <- 1000
+
+# Empty data frame for 1000 simulated days
+data <- data.frame(day = seq(1:n),
+                demand = NA, # demand in Rockport
+                quantity = NA, # quantity sold
+                price = NA, # price per pound
+                cost = 10000, # cost of daily operations
+                earnings = NA)
+
+head(data)
+
+```
+
+Your goal in this project is to:
+
+1. Fill in the dataset with random numbers drawn from the probability distributions defined in the case description---distributions for demand, quantity and price.
+
+2. Use those numbers to compute earnings.
+
+3. Summarize the earnings distribution to inform a business recommendation.
+
+Note:  
+
+1. This case is slightly different from the one in the tutorial in that quantity sold is a function of demand: if demand is greater than 3500 then quantity is 3500 otherwise it equals demand.  The mathematical notation used for this relationship in the case description---min(3500, D)---is NOT R code. There are various ways of creating the quantity variable but `ifelse()` works well.
+
+2. Use set.seed(123) once before doing any simulation.  Why 123?  This is an arbitrary seed that controls a random process, making the results comparable.  People who share the seed will get the same results. R will increment the seed in a deterministic fashion every time you run a random process.  So if you simulate your random variables in a different order than the one stipulated in the empty dataframe that has been provided, you will get a different answer.  Is it wrong?  No, but your results will not be identical to those of your classmates.  For example:
+
+```{r}
+set.seed(123)
+rnorm(1000) %>% mean()
+rnorm(1000) %>% mean()
+
+```
+
+The means of the two samples are different (.016 vs. .042) because R has incremented the seed for the second sample. 
+
+Compare to:
+
+```{r}
+set.seed(123)
+rnorm(1000) %>% mean()
+
+set.seed(123)
+rnorm(1000) %>% mean()
+
+```
+
+3. Clint Conley has 50 boats, but we will be modeling earnings per boat.  (It would be simple enough to multiply your per boat results by 50 to get earnings for the fleet.)
+
+## Questions
+
+Lightly comment your code and use pipes for readability.
+
+Most of the questions require some writing.  Please place your text immediately after the ">" in each question, which will make it into a block quote.
+
+Use this code chunk to simulate demand, quantity and price, and then compute earnings. Make sure to use set.seed(123) before running any random process to ensure that your results are reproducible!
+
+```{r}
+set.seed(123)
+
+sim <- data %>% 
+  mutate(demand=sample(x = c(0, 1000, 2000, 3000,4000,5000,6000),
+                                 size = n,
+                                 replace = T,
+                                 prob = c(.02,.03, 0.05, 0.08,0.33,0.29,0.2)),
+          quantity=if_else(demand>=3500,3500,demand),
+          price=rnorm(n = n, mean = 3.65, sd = 0.2),
+          earnings=price * quantity-10000
+         )
+
+```
+
+### Q1
+
+Plot simulated earnings.
+
+```{r}
+ggplot(sim, aes(earnings)) +
+  geom_density() +
+  theme_minimal()+
+  labs(title = "Distribution of Earnings")
+
+```
+
+### Q2
+
+What is P(F > 1375)?
+
+```{r}
+
+ggplot(sim, aes(earnings)) +
+  geom_density() +
+  geom_vline(xintercept = 1375, col = 2) +
+  theme_minimal()+
+   labs(title = "Distribution of Earnings",
+       subtitle = "Vertical Red Line = 1375")
+
+(sim$earnings > 1375) %>%
+  mean 
+
+```
+
+> 0.826
+
+### Q3
+
+What is P(F < 0)
+
+```{r}
+
+ggplot(sim, aes(earnings)) +
+  geom_density() +
+  geom_vline(xintercept = 0, col = 2) +
+  theme_minimal()+
+  labs(title = "Distribution of Earnings",
+       subtitle = "Vertical Red Line = 0")
+
+(sim$earnings < 0) %>%
+  mean
+```
+
+> 0.099
+
+### Q4
+
+What is the expected value (mean) of F?
+
+```{r}
+sim$earnings %>%
+  mean
+```
+
+> $1,879.7
+
+### Q5
+
+What is your advice to Clint Conley?  Write one paragraph in which you argue a position. In your answer please incorporate the quantitative details from your simulation, and consider in particular the trade-off between risk and reward.
+
+> My advice to Clint Conley would be to sell his daily catch in Rockport. Clint has a strong probability of .826 to make more than $1,375 by selling daily catch in Rockport while his fixed daily earning from selling fish in Gloucester will be $1,375. The risk here is just 17.4% [1-0.826] but the rewards can be big. By selling fish in Rockport, on a lucky day, his earnings can go as high as $5,000. His mean earnings at Rockport also look solid at $1,880 [which is $505 above his daily earing at Gloucester].
+And this is just the earnings from one boat. His earnings can be 50x times if he were to deploy all his boats in Rockport.
+
+### Challenge
+
+This question is optional and not graded!
+
+Clint Conley is worried about an economic recession.  He thinks that a recession would impact prices more at Rockport than at Gloucester, which, as the larger and better established market, is probably less vulnerable to macroeconomic changes.  How much would the probability distribution of price need to change at Rockport in order to change your advice about which port he should use?
+
+> In order for me to change my advice, the probabaility distribution of price at rockport should change to an extent that Clint has less than 0.5 probablity of making earnings of more than $1,375. With some trial and error I was able to arrive at a probability ditribution of price that can bring down his earnings at Rockport to this level.The price in this case should have a normal distribution with the mean $3.3 and a standard deviation of $0.33. 
+
+```{r}
+set.seed(123)
+
+sim2 <- data %>% 
+  mutate(demand=sample(x = c(0, 1000, 2000, 3000,4000,5000,6000),
+                                 size = n,
+                                 replace = T,
+                                 prob = c(.02,.03, 0.05, 0.08,0.33,0.29,0.2)),
+          quantity=if_else(demand>=3500,3500,demand),
+          price=rnorm(n = n, mean = 3.3, sd = 0.33),
+          earnings=price * quantity-10000
+         )
+
+
+(sim2$earnings > 1375) %>%
+  mean 
+
+ggplot(sim2, aes(earnings)) +
+  geom_density() +
+  geom_vline(xintercept = 1375, col = 2) +
+  theme_minimal()+
+  labs(title = "Distribution of Earnings at Rockport at the time of recession",
+       subtitle = "Vertical Red Line = 1375")
+
+```
+
